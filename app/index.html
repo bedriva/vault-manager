@@ -1,16 +1,42 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Image Size Calculator</title>
-    <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <title>Vault Manager</title>
   </head>
   <body>
-    <div class="container">
-      <app></app>
+
+    <!-- No header, and the drawer stays open on larger screens (fixed drawer). -->
+    <div class="mdl-layout mdl-js-layout mdl-layout--fixed-drawer">
+      <div class="mdl-layout__drawer">
+        <span class="mdl-layout-title">Vault Manager</span>
+        <nav class="mdl-navigation">
+          <a class="mdl-navigation__link" href="#">List</a>
+        </nav>
+      </div>
+      <main class="mdl-layout__content">
+        <div class="page-content">
+          <app></app>
+        </div>
+      </main>
     </div>
+
+    <!-- Scripts -->
     <script src="../node_modules/angular2/bundles/angular2-polyfills.js"></script>
     <script src="../build/common.js"></script>
     <script src="../build/angular2.js"></script>
     <script src="../build/app.js"></script>
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.1.3/material.indigo-pink.min.css">
+    <script defer src="https://code.getmdl.io/1.1.3/material.min.js"></script>
+
+    <style>
+    .op-list { background-color:lightgrey; }
+    .op-delete { background-color:red; color:white; font-weight:bold; }
+    .op-create { background-color:lightgreen; }
+    .op-update { background-color:orange; }
+    .op-read { background-color:yellow; }
+    </style>
+
   </body>
 </html>

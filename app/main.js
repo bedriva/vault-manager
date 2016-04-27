@@ -1,4 +1,4 @@
-var app = require('app'); 
+var app = require('app');
 
 // browser-window creates a native window
 var BrowserWindow = require('browser-window');
@@ -13,7 +13,9 @@ app.on('window-all-closed', function () {
 app.on('ready', function () {
 
   // Initialize the window to our specified dimensions
-  mainWindow = new BrowserWindow({ width: 1200, height: 900 });
+  mainWindow = new BrowserWindow({ width: 1500, height: 900, frame: true });
+
+  mainWindow.webContents.openDevTools();
 
   // Tell Electron where to load the entry point from
   mainWindow.loadURL('file://' + __dirname + '/index.html');
