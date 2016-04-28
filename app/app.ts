@@ -19,28 +19,32 @@ import {provide}           from 'angular2/core';
 import {LocationStrategy,
         HashLocationStrategy} from 'angular2/router';
 
-var CURRENT_PATH = [];
+var PATHS_CACHE = [];
 var MAX_LEVEL = false;
+
+function vaultFolder():string {
+  return process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'] + '/vault/';
+}
 
 @Injectable()
 export class VaultService {
   constructor (private http: Http) {}
 
-  getItems (token): Observable<any> {
+  getItems (path, token): Observable<any> {
 
     var headers = new Headers();
     headers.append('X-Vault-Token', token);
 
-    return this.http.get('http://127.0.0.1:8200/v1/secret' + (CURRENT_PATH ? '/' + CURRENT_PATH.join('/') : '') + '/?list=true', {headers: headers})
+    return this.http.get('http://127.0.0.1:8200/v1/secret' + path + '?list=true', {headers: headers})
                     .map(this.extractData)
                     .catch(this.handleError);
   }
-  getItem (token, fullpath): Observable<any> {
+  getItem (path, token): Observable<any> {
 
     var headers = new Headers();
     headers.append('X-Vault-Token', token);
 
-    return this.http.get('http://127.0.0.1:8200/v1/secret' + (fullpath ? '/' + fullpath.join('/') : '') + '', {headers: headers})
+    return this.http.get('http://127.0.0.1:8200/v1/secret' + path + '', {headers: headers})
                     .map(this.extractDataSingle)
                     .catch(this.handleError);
   }
@@ -52,6 +56,23 @@ export class VaultService {
 
     return body.data || { };
   }
+  static getIcon(key) {
+    var icons = {
+      host: 'storage',
+      user: 'person',
+      pass: 'fingerprint',
+      key: 'vpn key',
+      port: 'dialpad',
+      email: 'email',
+      url: 'link',
+    };
+
+    if (icons[key]) {
+      return icons[key];
+    } else {
+      return '<i class="material-icons">radio_button_unchecked</i>';
+    }
+  }
   private extractDataSingle(res: Response) {
     if (res.status < 200 || res.status >= 300) {
       throw new Error('Bad response status: ' + res.status);
@@ -60,7 +81,7 @@ export class VaultService {
     let r = [];
 
     for (let i in body.data) {
-      r.push({key: i, data: body.data[i]});
+      r.push({key: i, data: body.data[i], icon: VaultService.getIcon(i)});
     }
 
     return r || { };
@@ -74,49 +95,113 @@ export class VaultService {
 
 }
 
+export class VaultFolder {
+  path = '';
+  name = '';
+  folder:boolean = true;
+  children = [];
+
+  constructor (pathAsString:string)  {
+    this.setPath(pathAsString);
+    this.setName(pathAsString);
+    this.setFolder(pathAsString);
+  }
+
+  // Returns full path (except for last element)
+  private dirname(pathAsString) {
+    return require('path').dirname(pathAsString);
+  }
+
+  // Returns last element in path
+  private basename(pathAsString) {
+    return require('path').basename(pathAsString);
+  }
+
+  private normalize(pathAsString) {
+    return require('path').normalize(pathAsString);
+  }
+
+  private isFolder(pathAsString) {
+    return pathAsString.endsWith('/');
+  }
+
+  private setPath (pathAsString:string)  {
+    this.path = this.dirname(pathAsString);
+  }
+
+  private setName (pathAsString:string)  {
+    this.name = this.basename(pathAsString);
+  }
+
+  private setFolder (pathAsString:string)  {
+    this.folder = this.isFolder(pathAsString);
+  }
+
+  setChildren(data:any) {
+    this.children = [];
+
+     if (data.length) {
+       for (let i in data) {
+         this.children.push(new VaultFolder( this.normalize(this.path + '/' + this.name + '/' + data[i]) ));
+       }
+     }
+  }
+
+  fullPath() {
+    return this.normalize(this.path + '/' + this.name);
+  }
+
+}
+
 @Component({
   selector: 'app',
   template: `
 
   <form action="#">
     <div class="mdl-textfield mdl-js-textfield">
+      <b class="mdl" for="sample">Token:</b>
       <input [(ngModel)]="token" (keyup)="validate()" class="mdl-textfield__input" type="text" id="sample1">
-      <label class="mdl-textfield__label" for="sample1">Token...</label>
     </div>
   </form>
 
-  <table class="mdl-data-table">
-    <thead>
-      <tr>
-        <th>Sökväg</th>
-      </tr>
-    </thead>
-    <tbody *ngIf="data">
-      <tr *ngFor="#item of data.keys">
-        <td style="cursor:pointer;"><span *ngFor="#folder of folders" (click)="goToPath(item)">{{folder}}/</span><span (click)="goToPath(item)">{{item}}</span></td>
-      </tr>
-    </tbody>
-  </table>
+  <div *ngIf="tree" class="path-col path-col-root">
+    <span (click)="loadChildren(tree)">{{tree.name}} (root)</span>
+    <div class="path-col path-col-1" *ngFor="#child1 of tree.children">
+      <i class="material-icons">{{child1.folder ? 'folder' : 'description'}}</i> <span (click)="loadChildren(child1)">{{child1.name}}</span>
+      <div class="path-col path-col-2" *ngFor="#child2 of child1.children">
+        <i class="material-icons">{{child2.folder ? 'folder' : 'description'}}</i> <span (click)="loadChildren(child2)">{{child2.name}}</span>
+        <div class="path-col path-col-3" *ngFor="#child3 of child2.children">
+          <i class="material-icons">{{child3.folder ? 'folder' : 'description'}}</i> <span (click)="loadChildren(child3)">{{child3.name}}</span>
+          <div class="path-col path-col-4" *ngFor="#child4 of child3.children">
+            <i class="material-icons">{{child4.folder ? 'folder' : 'description'}}</i> <span (click)="loadChildren(child4)">{{child4.name}}</span>
+            <div class="path-col path-col-5" *ngFor="#child5 of child4.children">
+              <i class="material-icons">{{child5.folder ? 'folder' : 'description'}}</i> <span (click)="loadChildren(child5)">{{child5.name}}</span>
+              <div class="path-col path-col-6" *ngFor="#child6 of child5.children">
+                <i class="material-icons">{{child6.folder ? 'folder' : 'description'}}</i> <span (click)="loadChildren(child6)">{{child6.name}}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div class="demo-card-wide mdl-card mdl-shadow--2dp" *ngIf="singleData">
     <div class="mdl-card__title">
       <h2 class="mdl-card__title-text">Data</h2>
     </div>
     <div class="mdl-card__supporting-text">
-      <table class="mdl-data-table">
-        <thead>
-          <tr>
-            <th>Nyckel</th>
-            <th>Data</th>
-          </tr>
-        </thead>
-        <tbody *ngIf="data">
-          <tr *ngFor="#item of singleData">
-            <td>{{item.key}}</td>
-            <td>{{item.data}}</td>
-          </tr>
-        </tbody>
-      </table>
+
+      <ul class="mdl-list">
+        <li class="mdl-list__item mdl-list__item--two-line" *ngFor="#item of singleData">
+          <span class="mdl-list__item-primary-content">
+            <i class="material-icons mdl-list__item-avatar">{{item.icon}}</i>
+            <span>{{item.data}}</span>
+            <span class="mdl-list__item-sub-title">{{item.key}}</span>
+          </span>
+        </li>
+      </ul>
+
     </div>
     <div class="mdl-card__actions mdl-card--border">
       <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">
@@ -159,16 +244,16 @@ export class VaultService {
 export class App {
 
   constructor (private _vaultService: VaultService) {}
-  data:any;
+  tree:VaultFolder = new VaultFolder('/');
   singleData:any;
   errorMessage:any = '';
   folders:any[] = [];
   token: string;
   logs: any;
-  ngOnInit() { this.loadToken(); this.getItems(); this.getLog(); }
+  ngOnInit() { this.loadToken(); this.getItems(this.tree); this.getLog(); }
 
   getLog() {
-    var data = require('fs').readFileSync('~/vault/audit.log', {encoding: 'utf8'});
+    var data = require('fs').readFileSync(vaultFolder() + 'audit.log', {encoding: 'utf8'});
     data = '{"data": [' + data.replace(new RegExp("\n", 'g'), ',') + '{}]}';
     data = JSON.parse(data);
 
@@ -183,54 +268,50 @@ export class App {
     this.logs = newLogs;
   }
 
-  getItems(saveToken:boolean = false) {
-    this.folders = CURRENT_PATH;
-
-    this._vaultService.getItems(this.token)
+  getItems(currentFolder:VaultFolder, saveToken:boolean = false) {
+    this._vaultService.getItems(currentFolder.fullPath(), this.token)
                      .subscribe(
                        data => {
-                         this.data = data ;
-                         require('fs').writeFileSync('~/vault/.vault-manager-token', this.token);
+                         currentFolder.setChildren(data.keys);
+
+                         console.log(this.tree);
+
+                         if (saveToken) {
+                           require('fs').writeFileSync(vaultFolder() + '.vault-manager-token', this.token);
+                         }
+
                        },
                        error =>  this.errorMessage = <any>error);
   }
 
-  getItem(fullpath) {
-    this.folders = CURRENT_PATH;
-
-    MAX_LEVEL = true;
-
-    this._vaultService.getItem(this.token, fullpath)
+  getItem(currentFolder:VaultFolder) {
+    this._vaultService.getItem(currentFolder.fullPath(), this.token)
                      .subscribe(
-                       data => this.singleData = data,
+                       data => {
+                         this.singleData = data;
+                       },
                        error =>  this.errorMessage = <any>error);
   }
 
-  goToPath(path) {
+  loadChildren(folder:VaultFolder) {
 
-    if (path.indexOf('/') !== -1) {
-      CURRENT_PATH.push(path.replace('/', ''));
-      this.getItems();
+    if (folder.folder) {
+      this.getItems(folder);
     } else {
-      if (!MAX_LEVEL) {
-        let fullpath = CURRENT_PATH;
-        fullpath.push(path.replace('/', ''));
-
-        this.getItem(fullpath);
-      }
+      this.getItem(folder);
     }
 
   }
 
   validate() {
-    this.getItems(true);
+    this.getItems(this.tree, true);
   }
 
   loadToken() {
-    if (!require('fs').existsSync('~/vault/.vault-manager-token')) {
-      require('fs').writeFileSync('~/vault/.vault-manager-token', '');
+    if (!require('fs').existsSync(vaultFolder() + '.vault-manager-token')) {
+      require('fs').writeFileSync(vaultFolder() + '.vault-manager-token', '');
     }
-    this.token = require('fs').readFileSync('~/vault/.vault-manager-token', {encoding: 'utf8'});
+    this.token = require('fs').readFileSync(vaultFolder() + '.vault-manager-token', {encoding: 'utf8'});
   }
 
 }
