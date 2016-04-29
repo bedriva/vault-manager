@@ -48,18 +48,63 @@
     .path-col-root {
       margin-bottom:25px;
     }
+    .mdl-card {
+      width:100%;
+    }
+    .card-read-mode .mdl-list__item--two-line {
+      cursor: pointer;
+      transition: 0.1s all;
+      color:#757575;
+      background-color:white;
+    }
+    .card-read-mode .mdl-list__item--two-line:hover {
+      background-color:#757575;
+      color:white;
+    }
+    .card-read-mode .mdl-list__item--two-line:hover .mdl-list__item-avatar.material-icons {
+      color:white;
+      background-color:transparent;
+    }
+    .mdl-list__item--two-line .mdl-list__item-primary-content .mdl-list__item-sub-title {
+      color:inherit;
+    }
     .mdl-list__item--two-line {
       height:56px;
-      padding-bottom:0;
+      padding:8px;
+      color:inherit;
     }
     .mdl-list {
       margin-top:0;
       padding-top:0;
     }
-    .mdl-list__item-avatar,
+    .mdl-list .mdl-textfield__input {
+      display:inline;
+      width:inherit;
+      font-size:inherit;
+      border:0;
+      color:inherit;
+      padding:0;
+      margin:0;
+      cursor: inherit;
+    }
+    .mdl-list .mdl-textfield__input:focus {outline:none;}
     .mdl-list__item-avatar.material-icons {
       color:#757575;
       background-color:transparent;
+    }
+    .left-col {
+      float:left;
+      width:55%;
+    }
+    .right-col {
+      float:right;
+      width:40%;
+    }
+    .left-col-full {
+      width:100%;
+    }
+    table {
+      width:100%;
     }
     </style>
 
